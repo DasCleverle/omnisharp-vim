@@ -17,7 +17,7 @@ function! OmniSharp#GetHost(...) abort
     " { 'sln_or_dir': '/path/to/solution_or_dir', 'initialized': 1 }
     let host = getbufvar(bufnr, 'OmniSharp_host', {})
     if get(host, 'sln_or_dir', '') ==# ''
-      let host.sln_or_dir = OmniSharp#FindSolutionOrDir(1, bufnr)
+      let host.sln_or_dir = OmniSharp#FindSolutionOrDir(0, bufnr)
       let host.initialized = 0
       call setbufvar(bufnr, 'OmniSharp_host', host)
     endif
@@ -29,7 +29,7 @@ function! OmniSharp#GetHost(...) abort
   else
     " Using the HTTP server, b:OmniSharp_host is a localhost URL
     if empty(getbufvar(bufnr, 'OmniSharp_host'))
-      let sln_or_dir = OmniSharp#FindSolutionOrDir(1, bufnr)
+      let sln_or_dir = OmniSharp#FindSolutionOrDir(0, bufnr)
       let port = OmniSharp#py#GetPort(sln_or_dir)
       if port == 0
         return ''
@@ -252,6 +252,8 @@ function! OmniSharp#StartServerIfNotRunning(...) abort
   if OmniSharp#FugitiveCheck() | return | endif
   " Bail early in this check if the file is a metadata file
   if type(get(b:, 'OmniSharp_metadata_filename')) == type('') | return | endif
+  if get(s:, 'server_start_declined', 0) == 1 | return | endif
+
   let sln_or_dir = a:0 ? a:1 : ''
   call OmniSharp#StartServer(sln_or_dir, 1)
 endfunction
@@ -287,6 +289,7 @@ function! OmniSharp#StartServer(...) abort
       else
         call OmniSharp#util#EchoErr(
         \ 'Could not find a solution or project to start server with')
+        let s:server_start_declined=1
         return
       endif
     endif
