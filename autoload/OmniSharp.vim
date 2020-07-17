@@ -237,6 +237,7 @@ endfunction
 function! OmniSharp#FindSolutionOrDir(...) abort
   let interactive = a:0 ? a:1 : 1
   let bufnr = a:0 > 1 ? a:2 : bufnr('%')
+
   if empty(getbufvar(bufnr, 'OmniSharp_buf_server'))
     try
       let sln = s:FindSolution(interactive, bufnr)
@@ -416,19 +417,16 @@ function! s:FindSolution(interactive, bufnr) abort
       throw 'Ambiguous solution file'
     endif
 
-    let labels = ['Solution:']
-    let index = 1
-    for solutionfile in solution_files
-      call add(labels, index . '. ' . solutionfile)
-      let index += 1
-    endfor
+    let choice = fzf#run({
+                \ 'source': solution_files,
+                \ 'down': '40%',
+                \ 'options': ['--prompt', 'Select solution>']
+                \ })
 
-    let choice = inputlist(labels)
-
-    if choice <= 0 || choice > len(solution_files)
+    if len(choice) == 0 || choice[0] == ''
       throw 'No solution selected'
     endif
-    let s:selected_sln = solution_files[choice - 1]
+    let s:selected_sln = choice[0]
     return s:selected_sln
   endif
 endfunction
